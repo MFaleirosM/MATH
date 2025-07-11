@@ -42,7 +42,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- App Header ----
-st.title("🚀 TeX Studio to Colab Notebook Converter")
+st.title("🚀 TeX Studio to Colab Notebook Converter - © Michel Martins 😎")
 st.markdown("""
 Convert LaTeX-formatted mathematical content into Jupyter Notebook format.
 Paste your LaTeX content below and get a downloadable `.ipynb` file.
