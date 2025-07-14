@@ -100,6 +100,10 @@ def parse_input_to_notebook(text):
         # Remove any remaining \end{document} in section content
         section_content = re.sub(r'\\end{document}.*', '', section_content, flags=re.DOTALL)
         
+        # Additional check for RESPONSE section to ensure no \end{document} remains
+        if "RESPONSE" in section_title.upper():
+            section_content = re.sub(r'\\end{document}.*', '', section_content, flags=re.DOTALL)
+        
         notebook["cells"].append({
             "cell_type": "markdown",
             "source": [f"**{section_title}**\n\n{section_content}"],
@@ -129,11 +133,18 @@ def parse_input_to_notebook(text):
         "id": "final_separator"
     })
 
+    # Final cleanup of all cells to ensure no \end{document} remains
     for cell in notebook["cells"]:
         if cell["cell_type"] == "markdown":
-            cell["source"] = [text.replace("\\\\", "\\") for text in cell["source"]]
-            # Final cleanup of any remaining \end{document} in cell sources
-            cell["source"] = [re.sub(r'\\end{document}.*', '', text, flags=re.DOTALL) for text in cell["source"]]
+            # Apply multiple cleanup steps
+            cleaned_source = []
+            for text in cell["source"]:
+                # Replace escaped backslashes first
+                text = text.replace("\\\\", "\\")
+                # Remove \end{document} and anything after it
+                text = re.sub(r'\\end{document}.*', '', text, flags=re.DOTALL)
+                cleaned_source.append(text)
+            cell["source"] = cleaned_source
 
     return notebook
 
