@@ -72,17 +72,34 @@ def parse_input_to_notebook(text):
         "id": "metadata_cell"
     })
 
+    # First remove \end{document} if it exists in the text
+    text = re.sub(r'\\end{document}.*', '', text, flags=re.DOTALL)
+
     sections = re.split(r"\\section\*{(\[.*?\])}", text)
     for i in range(1, len(sections), 2):
         section_title = sections[i]
         section_content = sections[i + 1].strip()
-        if re.search(r'\b(PROMPT|SECTION|RESPONSE)\b', section_title.upper()):
+        
+        # Add separator for SECTION_XX labels (like [SECTION_01], [SECTION_02], etc.)
+        if re.search(r'\[SECTION_\d+\]', section_title.upper()):
+            notebook["cells"].append({
+                "cell_type": "markdown",
+                "source": ["---"],
+                "metadata": {},
+                "id": f"separator_before_{section_title}"
+            })
+        # Also keep the original separator for PROMPT/RESPONSE
+        elif re.search(r'\b(PROMPT|RESPONSE)\b', section_title.upper()):
             notebook["cells"].append({
                 "cell_type": "markdown",
                 "source": ["---"],
                 "metadata": {},
                 "id": f"separator_{i}"
             })
+            
+        # Remove any remaining \end{document} in section content
+        section_content = re.sub(r'\\end{document}.*', '', section_content, flags=re.DOTALL)
+        
         notebook["cells"].append({
             "cell_type": "markdown",
             "source": [f"**{section_title}**\n\n{section_content}"],
@@ -95,6 +112,7 @@ def parse_input_to_notebook(text):
             for j in range(1, len(atomic_parts), 2):
                 atomic_title = atomic_parts[j]
                 atomic_content = atomic_parts[j + 1].strip()
+                atomic_content = re.sub(r'\\end{document}.*', '', atomic_content, flags=re.DOTALL)
                 atomic_content = re.sub(r'\\\[\s*(.*?)\s*\\\]', r'\\[\n\1\n\\]', atomic_content)
                 atomic_content = atomic_content.replace("\n", "  \n")
                 notebook["cells"].append({
@@ -114,6 +132,8 @@ def parse_input_to_notebook(text):
     for cell in notebook["cells"]:
         if cell["cell_type"] == "markdown":
             cell["source"] = [text.replace("\\\\", "\\") for text in cell["source"]]
+            # Final cleanup of any remaining \end{document} in cell sources
+            cell["source"] = [re.sub(r'\\end{document}.*', '', text, flags=re.DOTALL) for text in cell["source"]]
 
     return notebook
 
@@ -147,6 +167,19 @@ def escape_latex_delimiters_in_notebook(notebook):
                     text = re.sub(old, new, text)
                 cell['source'][i] = text
     return notebook
+def extract_body_content(text):
+    """Extract content between \begin{document} and \end{document}, ignoring everything else"""
+    # Remove everything before \begin{document} if it exists
+    begin_pos = text.find(r'\begin{document}')
+    if begin_pos >= 0:
+        text = text[begin_pos + len(r'\begin{document}'):]
+    
+    # Remove everything after \end{document} if it exists
+    end_pos = text.find(r'\end{document}')
+    if end_pos >= 0:
+        text = text[:end_pos]
+    
+    return text.strip()
 
 # ---- Main App Interface ----
 input_text = st.text_area(
@@ -166,6 +199,8 @@ if st.button("**Convert to Jupyter Notebook**", type="primary"):
     else:
         with st.spinner("Processing your LaTeX content..."):
             try:
+                # First extract the body content, ignoring document wrappers
+                body_content = extract_body_content(input_text)
                 # Process through transformations
                 transformed_text = transform_latex_equations(input_text)
                 output_text = perform_substitutions(transformed_text)
