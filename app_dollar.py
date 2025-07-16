@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+import re
+import streamlit as st
+from typing import Tuple  # Add this import
+
 def convert_latex_delimiters(text: str) -> Tuple[str, int]:
     """
     Convert all LaTeX math environments to $...$ (inline) or $$...$$ (display) delimiters.
@@ -21,7 +26,6 @@ def convert_latex_delimiters(text: str) -> Tuple[str, int]:
 
     # First handle all display math environments that span multiple lines
     # \[...\] -> $$...$$
-    # Using a more robust pattern that explicitly handles newlines
     convert_and_count(r'\\\[((?:.|\n)*?)\\\]', r'$$\1$$')
 
     # Other display math environments (equation, align, gather, etc.)
@@ -44,6 +48,7 @@ def convert_latex_delimiters(text: str) -> Tuple[str, int]:
     convert_and_count(r'\\ensuremath\{(.*?)\}', r'$\1$')
 
     return current_text, conversion_count
+
 def main():
     st.set_page_config(
         page_title="LaTeX Delimiter Converter",
