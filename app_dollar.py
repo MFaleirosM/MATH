@@ -1,10 +1,8 @@
 def convert_latex_delimiters(text: str) -> Tuple[str, int]:
     """
     Convert all LaTeX math environments to $...$ (inline) or $$...$$ (display) delimiters.
-
     Args:
         text: Input LaTeX text
-
     Returns:
         Tuple of (converted_text, conversion_count) where conversion_count is the number
         of math environments converted
@@ -18,27 +16,22 @@ def convert_latex_delimiters(text: str) -> Tuple[str, int]:
         conversion_count += count
         return new_text
 
-    # Display math conversions
-    # \[...\] -> $$...$$ (now handles multi-line with re.DOTALL flag)
-    text = convert_and_count(r'\\\[(.*?)\\\]', r'$$\1$$', flags=re.DOTALL)
+    # First handle all display math environments that span multiple lines
+    # \[...\] -> $$...$$
+    # Using a more robust pattern that explicitly handles newlines
+    text = convert_and_count(r'\\\[((?:.|\n)*?)\\\]', r'$$\1$$')
 
-    # \begin{equation*}...\end{equation*} -> $$...$$
-    text = convert_and_count(r'\\begin\{equation\*\}(.*?)\\end\{equation\*\}', r'$$\1$$', flags=re.DOTALL)
+    # Other display math environments (equation, align, gather, etc.)
+    display_envs = [
+        'equation*', 'equation',
+        'align*', 'align',
+        'gather*', 'gather',
+        'multline*', 'multline'
+    ]
 
-    # \begin{equation}...\end{equation} -> $$...$$
-    text = convert_and_count(r'\\begin\{equation\}(.*?)\\end\{equation\}', r'$$\1$$', flags=re.DOTALL)
-
-    # \begin{align*}...\end{align*} -> $$...$$
-    text = convert_and_count(r'\\begin\{align\*\}(.*?)\\end\{align\*\}', r'$$\1$$', flags=re.DOTALL)
-
-    # \begin{align}...\end{align} -> $$...$$
-    text = convert_and_count(r'\\begin\{align\}(.*?)\\end\{align\}', r'$$\1$$', flags=re.DOTALL)
-
-    # \begin{gather*}...\end{gather*} -> $$...$$
-    text = convert_and_count(r'\\begin\{gather\*\}(.*?)\\end\{gather\*\}', r'$$\1$$', flags=re.DOTALL)
-
-    # \begin{gather}...\end{gather} -> $$...$$
-    text = convert_and_count(r'\\begin\{gather\}(.*?)\\end\{gather\}', r'$$\1$$', flags=re.DOTALL)
+    for env in display_envs:
+        pattern = rf'\\begin\{{{env}\}}((?:.|\n)*?)\\end\{{{env}\}}'
+        text = convert_and_count(pattern, r'$$\1$$')
 
     # Inline math conversions
     # \(...\) -> $...$
