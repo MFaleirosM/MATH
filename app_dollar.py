@@ -8,18 +8,21 @@ def convert_latex_delimiters(text: str) -> Tuple[str, int]:
         of math environments converted
     """
     conversion_count = 0
+    current_text = text  # Work on a copy that gets updated
 
     # Helper function to count conversions
     def convert_and_count(pattern, replacement, flags=0):
-        nonlocal conversion_count
-        new_text, count = re.subn(pattern, replacement, text, flags=flags)
-        conversion_count += count
+        nonlocal conversion_count, current_text
+        new_text, count = re.subn(pattern, replacement, current_text, flags=flags)
+        if count > 0:
+            current_text = new_text
+            conversion_count += count
         return new_text
 
     # First handle all display math environments that span multiple lines
     # \[...\] -> $$...$$
     # Using a more robust pattern that explicitly handles newlines
-    text = convert_and_count(r'\\\[((?:.|\n)*?)\\\]', r'$$\1$$')
+    convert_and_count(r'\\\[((?:.|\n)*?)\\\]', r'$$\1$$')
 
     # Other display math environments (equation, align, gather, etc.)
     display_envs = [
@@ -31,16 +34,16 @@ def convert_latex_delimiters(text: str) -> Tuple[str, int]:
 
     for env in display_envs:
         pattern = rf'\\begin\{{{env}\}}((?:.|\n)*?)\\end\{{{env}\}}'
-        text = convert_and_count(pattern, r'$$\1$$')
+        convert_and_count(pattern, r'$$\1$$')
 
     # Inline math conversions
     # \(...\) -> $...$
-    text = convert_and_count(r'\\\((.*?)\\\)', r'$\1$')
+    convert_and_count(r'\\\((.*?)\\\)', r'$\1$')
 
     # \ensuremath{...} -> $...$
-    text = convert_and_count(r'\\ensuremath\{(.*?)\}', r'$\1$')
+    convert_and_count(r'\\ensuremath\{(.*?)\}', r'$\1$')
 
-    return text, conversion_count
+    return current_text, conversion_count
 def main():
     st.set_page_config(
         page_title="LaTeX Delimiter Converter",
