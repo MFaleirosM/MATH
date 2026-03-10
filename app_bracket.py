@@ -29,13 +29,13 @@ def convert_to_native_delimiters(text: str) -> Tuple[str, int]:
     # We match $$ over multiple lines. Negative lookbehinds ensure we don't trip over escaped dollars.
     pattern_display = r'(?<!\\)\$\$((?:.|\n)*?)(?<!\\)\$\$'
     # Replace with \[ ... \]
-    convert_and_count(pattern_display, r'\\\[\1\\\]')
+    convert_and_count(pattern_display, r'\\[\1\\]')
 
     # 2. Next handle inline math ($ ... $)
     # Match single $ over multiple lines.
     pattern_inline = r'(?<!\\)\$((?:.|\n)*?)(?<!\\)\$'
     # Replace with \( ... \)
-    convert_and_count(pattern_inline, r'\\\(\1\\\)')
+    convert_and_count(pattern_inline, r'\\(\1\\)')
 
     return current_text, conversion_count
 
